@@ -1,94 +1,120 @@
 import cv2
 import os
 import numpy as np
-import csv
+import csv 
 
 # =========================
-# KONFIGURASI PARAMETER
+# KONFIGURASI PATH
 # =========================
 input_root = r"D:\Documents\SKRIPSI\PROGRAM SISTEM DETEKSI IKAN\dataset\augmented"
 output_root = r"D:\Documents\SKRIPSI\PROGRAM SISTEM DETEKSI IKAN\canny\citra_canny"
-csv_path = r"D:\Documents\SKRIPSI\PROGRAM SISTEM DETEKSI IKAN\canny\hasil_piksel_tepi.csv"
-
-# Gaussian Blur
-gaussian_kernel = (5, 5)
-gaussian_sigma = 1.4
-
-# Canny Threshold
-low_threshold = 50
-high_threshold = 150
+csv_path = r"D:\Documents\SKRIPSI\PROGRAM SISTEM DETEKSI IKAN\canny\hasil_piksel_tepii.csv"
 
 os.makedirs(output_root, exist_ok=True)
 
 # =========================
-# SIAPKAN FILE CSV
+# PARAMETER CANNY
 # =========================
-with open(csv_path, mode='w', newline='') as file:
-    writer = csv.writer(file)
+gaussian_kernel = (5, 5)
+gaussian_sigma = 1.4
+low_threshold = 50
+high_threshold = 150
+
+# =========================
+# SIAPKAN CSV
+# =========================
+with open(csv_path, mode='w', newline='') as file_csv:
+
+    writer = csv.writer(file_csv)
     writer.writerow([
         "Kelas",
-        "Nama File",
-        "Jumlah Piksel Tepi",
-        "Total Piksel",
-        "Rasio Piksel Tepi"
+        "Nama_File",
+        "Edge_Pixels",
+        "Object_Pixels",
+        "Edge_Ratio"
     ])
 
-# =========================
-# PROSES DATASET
-# =========================
-for class_name in os.listdir(input_root):
-    class_input_path = os.path.join(input_root, class_name)
+    # =========================
+    # PROSES SETIAP KELAS
+    # =========================
+    for class_name in os.listdir(input_root):
 
-    if not os.path.isdir(class_input_path):
-        continue
+        class_input_path = os.path.join(input_root, class_name)
 
-    class_output_path = os.path.join(output_root, class_name)
-    os.makedirs(class_output_path, exist_ok=True)
+        if not os.path.isdir(class_input_path):
+            continue
 
-    print(f"\n📁 Memproses kelas: {class_name}")
+        class_output_path = os.path.join(output_root, class_name)
+        os.makedirs(class_output_path, exist_ok=True)
 
-    for file in os.listdir(class_input_path):
-        if file.lower().endswith(".png"):
-            img_path = os.path.join(class_input_path, file)
+        print(f"\n📁 Memproses kelas: {class_name}")
 
-            # Baca citra grayscale
-            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-            if img is None:
-                print(f"❌ Gagal membaca {file}")
-                continue
+        for file in os.listdir(class_input_path):
 
-            # 1. Gaussian Smoothing
-            blurred = cv2.GaussianBlur(
-                img,
-                gaussian_kernel,
-                gaussian_sigma
-            )
+            if file.lower().endswith(".png"):
 
-            # 2. Canny Edge Detection
-            edges = cv2.Canny(
-                blurred,
-                low_threshold,
-                high_threshold
-            )
+                img_path = os.path.join(class_input_path, file)
 
-            # 3. Hitung jumlah piksel tepi
-            edge_pixels = np.sum(edges > 0)
-            total_pixels = edges.size
-            edge_ratio = edge_pixels / total_pixels
+                # =========================
+                # BACA CITRA GRAYSCALE
+                # =========================
+                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 
-            # 4. Simpan hasil citra
-            output_path = os.path.join(class_output_path, file)
-            cv2.imwrite(output_path, edges)
+                if img is None:
+                    print(f"❌ Gagal membaca {file}")
+                    continue
 
-            # 5. Simpan ke CSV
-            with open(csv_path, mode='a', newline='') as file_csv:
-                writer = csv.writer(file_csv)
+                # =========================
+                # GAUSSIAN SMOOTHING
+                # =========================
+                blurred = cv2.GaussianBlur(
+                    img,
+                    gaussian_kernel,
+                    gaussian_sigma
+                )
+
+                # =========================
+                # CANNY EDGE DETECTION
+                # =========================
+                edges = cv2.Canny(
+                    blurred,
+                    low_threshold,
+                    high_threshold
+                )
+
+                # =========================
+                # HITUNG EDGE PIXEL
+                # =========================
+                edge_pixels = np.sum(edges > 0)
+
+                # HITUNG OBJECT PIXEl
+                object_pixels = np.sum(img > 0)
+
+                # EDGE RATIO
+                if object_pixels == 0:
+                    edge_ratio = 0
+                else:
+                    edge_ratio = edge_pixels / object_pixels
+
+                # =========================
+                # SIMPAN CITRA EDGE
+                # =========================
+                output_path = os.path.join(class_output_path, file)
+                cv2.imwrite(output_path, edges)
+
+                # =========================
+                # SIMPAN KE CSV
+                # =========================
                 writer.writerow([
                     class_name,
                     file,
                     edge_pixels,
-                    total_pixels,
+                    object_pixels,
                     round(edge_ratio, 6)
                 ])
 
-            print(f"✅ {class_name}/{file} | Edge: {edge_pixels} | Rasio: {edge_ratio:.4f}")
+                print(
+                    f"✅ {class_name}/{file} | Edge: {edge_pixels} | Ratio: {edge_ratio:.5f}"
+                )
+
+print("\n🎉 Proses Canny selesai dan data disimpan ke CSV.")

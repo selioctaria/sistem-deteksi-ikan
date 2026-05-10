@@ -17,6 +17,21 @@ print("Jumlah data GLCM :", len(df_glcm))
 print("Jumlah data Canny:", len(df_canny))
 
 # =========================
+# CEK NAMA KOLOM AWAL
+# =========================
+print("\nKolom awal GLCM:")
+print(df_glcm.columns)
+
+print("\nKolom awal Canny:")
+print(df_canny.columns)
+
+# =========================
+# BERSIHKAN NAMA KOLOM
+# =========================
+df_glcm.columns = df_glcm.columns.str.strip()
+df_canny.columns = df_canny.columns.str.strip()
+
+# =========================
 # STANDARISASI NAMA KOLOM
 # =========================
 df_glcm.rename(columns={
@@ -25,12 +40,22 @@ df_glcm.rename(columns={
 }, inplace=True)
 
 df_canny.rename(columns={
+    "Nama_File": "filename",
     "Nama File": "filename",
     "Kelas": "label",
-    "Jumlah Piksel Tepi": "edge_pixels",
-    "Total Piksel": "total_pixels",
-    "Rasio Piksel Tepi": "edge_ratio"
+    "Edge_Pixels": "edge_pixels",
+    "Object_Pixels": "total_pixels",
+    "Edge_Ratio": "edge_ratio"
 }, inplace=True)
+
+# =========================
+# CEK KOLOM SETELAH RENAME
+# =========================
+print("\nKolom setelah rename GLCM:")
+print(df_glcm.columns)
+
+print("\nKolom setelah rename Canny:")
+print(df_canny.columns)
 
 # =========================
 # VALIDASI DATA SEBELUM MERGE
@@ -38,17 +63,17 @@ df_canny.rename(columns={
 missing_glcm = set(df_canny["filename"]) - set(df_glcm["filename"])
 missing_canny = set(df_glcm["filename"]) - set(df_canny["filename"])
 
-print(f"File di Canny tapi tidak ada di GLCM: {len(missing_glcm)}")
-print(f"File di GLCM tapi tidak ada di Canny: {len(missing_canny)}")
+print("\nFile di Canny tapi tidak ada di GLCM:", len(missing_glcm))
+print("File di GLCM tapi tidak ada di Canny:", len(missing_canny))
 
 if len(missing_glcm) > 0:
-    print("⚠ Contoh missing (Canny → GLCM):", list(missing_glcm)[:5])
+    print("Contoh missing (Canny → GLCM):", list(missing_glcm)[:5])
 
 if len(missing_canny) > 0:
-    print("⚠ Contoh missing (GLCM → Canny):", list(missing_canny)[:5])
+    print("Contoh missing (GLCM → Canny):", list(missing_canny)[:5])
 
 # =========================
-# MERGE DATA (INNER JOIN)
+# MERGE DATA
 # =========================
 df_merge = pd.merge(
     df_glcm,
@@ -57,10 +82,10 @@ df_merge = pd.merge(
     how="inner"
 )
 
-print("Jumlah data setelah merge:", len(df_merge))
+print("\nJumlah data setelah merge:", len(df_merge))
 
 # =========================
-# SELEKSI KOLOM FINAL
+# SELEKSI FITUR FINAL
 # =========================
 df_final = df_merge[[
     "Contrast",
@@ -79,5 +104,6 @@ df_final.to_csv(output_csv, index=False)
 
 print("\n✅ Penggabungan fitur BERHASIL")
 print("📁 File output:", output_csv)
+
 print("\nContoh 5 baris data:")
 print(df_final.head())

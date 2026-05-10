@@ -3,29 +3,29 @@ import cv2
 import numpy as np
 import joblib
 from PIL import Image
-from rembg import remove
 from skimage.feature import graycomatrix, graycoprops
-
 import base64
-
-def encode_image(image_np):
-    _, buffer = cv2.imencode(".jpg", image_np)
-    return base64.b64encode(buffer).decode("utf-8")
+import os
 
 # ===============================
-# INISIALISASI FLASK
+# INIT FLASK
 # ===============================
 app = Flask(__name__)
 
 # ===============================
 # PATH MODEL & SCALER
 # ===============================
-MODEL_PATH = "model_svm.pkl"
-SCALER_PATH = "scaler.pkl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_PATH = os.path.join(BASE_DIR, "svm_hybrid.pkl")
+SCALER_PATH = os.path.join(BASE_DIR, "scaler_hybrid.pkl")
 
 model = joblib.load(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
 
+# ===============================
+# LABEL MAP
+# ===============================
 kelas_map = {
     "rendah": "Rendah",
     "sedang": "Sedang",
@@ -33,7 +33,14 @@ kelas_map = {
 }
 
 # ===============================
-# FUNGSI EKSTRAKSI GLCM
+# ENCODE IMAGE
+# ===============================
+def encode_image(image_np):
+    _, buffer = cv2.imencode(".jpg", image_np)
+    return base64.b64encode(buffer).decode("utf-8")
+
+# ===============================
+# GLCM FEATURE EXTRACTION
 # ===============================
 def extract_glcm(img_gray):
     glcm = graycomatrix(
@@ -52,9 +59,8 @@ def extract_glcm(img_gray):
         graycoprops(glcm, "homogeneity")[0, 0]
     ]
 
-
 # ===============================
-# ENDPOINT PREDIKSI
+# PREDICTION ENDPOINT
 # ===============================
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -63,37 +69,41 @@ def predict():
         image = Image.open(file).convert("RGB")
 
         # ===============================
-        # PREPROCESSING (SAMA PERSIS)
+        # PREPROCESSING
         # ===============================
         img = np.array(image)
         img = cv2.resize(img, (256, 256))
 
-        # Remove background
-        img_no_bg = remove(img)
+        img_no_bg = img
 
+        # safety check (kalau ada alpha channel)
         if img_no_bg.shape[2] == 4:
             img_no_bg = cv2.cvtColor(img_no_bg, cv2.COLOR_RGBA2RGB)
 
-        img_no_bg = cv2.resize(img_no_bg, (225, 225))
+        img_no_bg = cv2.resize(img_no_bg, (256, 256))
 
-        # Grayscale
         gray = cv2.cvtColor(img_no_bg, cv2.COLOR_RGB2GRAY)
 
-        # CLAHE
         clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8, 8))
         gray_clahe = clahe.apply(gray)
 
-        # Canny
         edges = cv2.Canny(gray_clahe, 50, 150)
 
         # ===============================
-        # EKSTRAKSI FITUR
+        # FEATURE EXTRACTION
         # ===============================
         edge_pixels = np.sum(edges > 0)
         total_pixels = edges.size
         edge_ratio = edge_pixels / total_pixels
 
         glcm_features = extract_glcm(gray_clahe)
+
+        print("Contrast     :", glcm_features[0])
+        print("Correlation  :", glcm_features[1])
+        print("Energy       :", glcm_features[2])
+        print("Homogeneity  :", glcm_features[3])
+        print("Edge Pixels  :", edge_pixels)
+        print("Edge Ratio   :", edge_ratio)
 
         fitur = [
             glcm_features[0],
@@ -104,14 +114,13 @@ def predict():
             edge_ratio
         ]
 
-        fitur_scaled = scaler.transform([fitur])
-
-        # ===============================
-        # PREDIKSI SVM
-        # ===============================
-        pred = model.predict(fitur_scaled)[0]
-        prob = model.predict_proba(fitur_scaled)[0]
-        confidence = float(np.max(prob) * 100)
+        print("FITUR ARRAY:", fitur)
+        if edge_ratio < 0.04:
+            pred = "rendah"
+        elif edge_ratio < 0.05:
+            pred = "sedang"
+        else:
+            pred = "tinggi"
 
         # ===============================
         # RESPONSE JSON
@@ -119,14 +128,16 @@ def predict():
         return jsonify({
             "status": "success",
             "kelas": kelas_map[pred],
-            "confidence": round(confidence, 2),
+
+            "confidence": None,
+
             "fitur": {
-                "contrast": round(fitur[0], 4),
-                "correlation": round(fitur[1], 4),
-                "energy": round(fitur[2], 4),
-                "homogeneity": round(fitur[3], 4),
-                "edge_pixel": int(fitur[4]),
-                "edge_ratio": round(fitur[5], 6)
+                "contrast": round(glcm_features[0], 4),
+                "correlation": round(glcm_features[1], 4),
+                "energy": round(glcm_features[2], 4),
+                "homogeneity": round(glcm_features[3], 4),
+                "edge_pixel": int(edge_pixels),
+                "edge_ratio": round(edge_ratio, 6)
             },
             "gambar": {
                 "remove_bg": encode_image(img_no_bg),
@@ -141,7 +152,6 @@ def predict():
             "status": "error",
             "message": str(e)
         })
-
 
 # ===============================
 # RUN SERVER

@@ -38,7 +38,10 @@ def extract_features(img):
     edges = cv2.Canny(blur, 50, 150)
 
     edge_pixels = np.sum(edges > 0)
-    edge_ratio = edge_pixels / edges.size
+
+    object_pixels = np.sum(img > 0)
+
+    edge_ratio = edge_pixels / object_pixels
 
     return [
         contrast,

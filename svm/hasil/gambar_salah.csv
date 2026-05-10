@@ -1,0 +1,13 @@
+Nama_Citra,Label_Asli,Label_Prediksi,Status
+tinggi_clahe_08_flipH_r0.png,tinggi,sedang,Salah
+tinggi_clahe_13_flipV_r0.png,tinggi,sedang,Salah
+tinggi_clahe_13_orig_r0.png,tinggi,sedang,Salah
+tinggi_clahe_27_flipH_r270.png,tinggi,sedang,Salah
+tinggi_clahe_29_orig_r0.png,tinggi,sedang,Salah
+sedang_clahe_09_flipV_r270.png,sedang,rendah,Salah
+sedang_clahe_09_orig_r270.png,sedang,rendah,Salah
+sedang_clahe_32_flipH_r0.png,sedang,tinggi,Salah
+sedang_clahe_32_flipV_r0.png,sedang,tinggi,Salah
+sedang_clahe_32_flipV_r270.png,sedang,tinggi,Salah
+sedang_clahe_32_orig_r90.png,sedang,tinggi,Salah
+rendah_clahe_30_orig_r0.png,rendah,sedang,Salah

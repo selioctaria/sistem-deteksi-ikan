@@ -1,57 +1,68 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
 import os
-import shutil
-import random
 
 # =========================
-# KONFIGURASI PATH
+# PATH FILE
 # =========================
-SOURCE_DIR = r"D:\Documents\SKRIPSI\PROGRAM SISTEM DETEKSI IKAN\dataset\augmented"
-TARGET_DIR = r"D:\Documents\SKRIPSI\PROGRAM SISTEM DETEKSI IKAN\dataset_split"
+input_csv = r"D:\Documents\SKRIPSI\PROGRAM SISTEM DETEKSI IKAN\fitur\fitur_hybrid_normalized.csv"
 
-# Proporsi split
-TRAIN_RATIO = 0.7
-VAL_RATIO = 0.15
-TEST_RATIO = 0.15
-
-random.seed(42)  # supaya konsisten
-
-classes = ["tinggi", "sedang", "rendah"]
+output_dir = r"D:\Documents\SKRIPSI\PROGRAM SISTEM DETEKSI IKAN\fitur\fitur_split"
+os.makedirs(output_dir, exist_ok=True)
 
 # =========================
-# PROSES SPLIT DATASET
+# LOAD DATA
 # =========================
-for cls in classes:
-    src_cls_path = os.path.join(SOURCE_DIR, cls)
-    images = [f for f in os.listdir(src_cls_path) if f.endswith(".png")]
-    
-    random.shuffle(images)
+df = pd.read_csv(input_csv)
 
-    total = len(images)
-    train_end = int(TRAIN_RATIO * total)
-    val_end = train_end + int(VAL_RATIO * total)
+print("Total data:", len(df))
 
-    train_imgs = images[:train_end]
-    val_imgs = images[train_end:val_end]
-    test_imgs = images[val_end:]
+# =========================
+# SPLIT TEST (165 DATA)
+# =========================
+train_val_df, test_df = train_test_split(
+    df,
+    test_size=165,
+    stratify=df["label"],
+    random_state=42
+)
 
-    splits = {
-        "train": train_imgs,
-        "val": val_imgs,
-        "test": test_imgs
-    }
+# =========================
+# SPLIT VALIDASI (162 DATA)
+# =========================
+train_df, val_df = train_test_split(
+    train_val_df,
+    test_size=162,
+    stratify=train_val_df["label"],
+    random_state=42
+)
 
-    for split, file_list in splits.items():
-        target_cls_dir = os.path.join(TARGET_DIR, split, cls)
-        os.makedirs(target_cls_dir, exist_ok=True)
+# =========================
+# SIMPAN CSV
+# =========================
+train_path = os.path.join(output_dir, "train.csv")
+val_path = os.path.join(output_dir, "val.csv")
+test_path = os.path.join(output_dir, "test.csv")
 
-        for file in file_list:
-            src_path = os.path.join(src_cls_path, file)
-            dst_path = os.path.join(target_cls_dir, file)
-            shutil.copy(src_path, dst_path)
+train_df.to_csv(train_path, index=False)
+val_df.to_csv(val_path, index=False)
+test_df.to_csv(test_path, index=False)
 
-    print(f"\nKelas: {cls}")
-    print(f"  Train: {len(train_imgs)}")
-    print(f"  Val  : {len(val_imgs)}")
-    print(f"  Test : {len(test_imgs)}")
+# =========================
+# INFO HASIL SPLIT
+# =========================
+print("\nJumlah dataset setelah split:")
+print("Train :", len(train_df))
+print("Val   :", len(val_df))
+print("Test  :", len(test_df))
 
-print("\n✅ Dataset berhasil dipisahkan ke folder train/val/test")
+print("\nDistribusi kelas TRAIN:")
+print(train_df["label"].value_counts())
+
+print("\nDistribusi kelas VALIDASI:")
+print(val_df["label"].value_counts())
+
+print("\nDistribusi kelas TEST:")
+print(test_df["label"].value_counts())
+
+print("\n✅ Dataset berhasil dibagi sesuai jumlah yang diinginkan")

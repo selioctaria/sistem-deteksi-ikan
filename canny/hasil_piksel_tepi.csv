@@ -1,4 +1,4 @@
-Kelas,Nama File,Jumlah Piksel Tepi,Total Piksel,Rasio Piksel Tepi
+Kelas,Nama_File,Edge_Pixels,Object_Pixels,Edge_Ratio
 rendah,rendah_clahe_01_flipH_r0.png,886,50625,0.017501
 rendah,rendah_clahe_01_flipH_r270.png,890,50625,0.01758
 rendah,rendah_clahe_01_flipH_r90.png,899,50625,0.017758
