@@ -226,7 +226,7 @@ def predict():
                 "Remove Background Black",
                 "Resize with Padding",
                 "Grayscale",
-                "CLAHE",
+                "CLAHE",                                                                  
                 "Canny Edge Detection",
                 "GLCM Feature Extraction",
                 "SVM Classification"
